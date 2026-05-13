@@ -51,26 +51,25 @@ function hexToRgba(hex, alpha) {
 
 const OpenLayersMap = forwardRef(function OpenLayersMap(
   {
-    coeffBySource,
     basemap,
     radiusKm,
     onRadiusChange,
     onAnalysis,
     onOutOfPilot,
     onFgbError,
+    onLegendItems,
   },
   ref,
 ) {
   const mapRef = useRef(null)
   const workerRef = useRef(null)
   const circleSourceRef = useRef(null)
-  const unifiedLayerRef = useRef(null)
-  const coeffRef = useRef(coeffBySource)
   const onFgbErrorRef = useRef(onFgbError)
+  const onLegendItemsRef = useRef(onLegendItems)
   const mapDivRef = useRef(null)
 
-  coeffRef.current = coeffBySource
   onFgbErrorRef.current = onFgbError
+  onLegendItemsRef.current = onLegendItems
 
   const [center3857, setCenter3857] = useState(null)
   const [followPointer, setFollowPointer] = useState(false)
@@ -105,7 +104,7 @@ const OpenLayersMap = forwardRef(function OpenLayersMap(
 
   const runAnalysis = useCallback(async () => {
     const url = import.meta.env.VITE_UNIFIED_FGB_URL
-    if (!center3857 || !url || !coeffBySource) {
+    if (!center3857 || !url) {
       onAnalysis?.(null)
       return
     }
@@ -127,12 +126,7 @@ const OpenLayersMap = forwardRef(function OpenLayersMap(
     try {
       const raw = await loadFgbFeaturesInExtent(url, extent)
       const circle4326 = buildCircleFeature4326(center3857, radiusKm)
-      const result = await runWorkerAnalysis(
-        raw,
-        circle4326,
-        coeffBySource,
-        workerRef.current,
-      )
+      const result = await runWorkerAnalysis(raw, circle4326, workerRef.current)
       onAnalysis?.({ ...result, radiusKm })
     } catch (e) {
       console.error(e)
@@ -141,7 +135,7 @@ const OpenLayersMap = forwardRef(function OpenLayersMap(
     } finally {
       setLoading(false)
     }
-  }, [center3857, radiusKm, coeffBySource, onAnalysis, onOutOfPilot, onFgbError])
+  }, [center3857, radiusKm, onAnalysis, onOutOfPilot, onFgbError])
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -161,7 +155,10 @@ const OpenLayersMap = forwardRef(function OpenLayersMap(
         unifiedSource.clear()
         if (!map || !url) return
         // Keep low zoom lightweight by disabling polygon fetch until threshold.
-        if (map.getView().getZoom() < MIN_ZOOM_VECTOR) return
+        if (map.getView().getZoom() < MIN_ZOOM_VECTOR) {
+          onLegendItemsRef.current?.([])
+          return
+        }
         try {
           const format = new GeoJSON({
             dataProjection: 'EPSG:3857',
@@ -177,6 +174,21 @@ const OpenLayersMap = forwardRef(function OpenLayersMap(
             acc.push(format.readFeature(gj))
           }
           unifiedSource.addFeatures(acc)
+          const byKey = new Map()
+          for (const feat of acc) {
+            const source = feat.get('source')
+            const code = feat.get('code') != null ? String(feat.get('code')) : ''
+            const key = `${source}:${code}`
+            if (!byKey.has(key)) {
+              byKey.set(key, {
+                source,
+                code,
+                libelle: feat.get('libelle') != null ? String(feat.get('libelle')) : code,
+                couleur: feat.get('couleur') != null ? String(feat.get('couleur')) : '#888888',
+              })
+            }
+          }
+          onLegendItemsRef.current?.(Array.from(byKey.values()))
         } catch (e) {
           console.error(e)
           onFgbErrorRef.current?.(e)
@@ -189,10 +201,7 @@ const OpenLayersMap = forwardRef(function OpenLayersMap(
     const unifiedLayer = new VectorLayer({
       source: unifiedSource,
       style: (feature) => {
-        const code = feature.get('code')
-        const source = feature.get('source')
-        const row = coeffRef.current?.[source]?.[String(code)]
-        const fill = row?.couleur || '#AAAAAA'
+        const fill = feature.get('couleur') || '#AAAAAA'
         return new Style({
           fill: new Fill({ color: hexToRgba(fill, 0.35) }),
           stroke: new Stroke({ color: fill, width: 1 }),
@@ -200,7 +209,6 @@ const OpenLayersMap = forwardRef(function OpenLayersMap(
       },
       zIndex: 5,
     })
-    unifiedLayerRef.current = unifiedLayer
 
     const circleLayer = new VectorLayer({
       source: circleSource,
@@ -287,10 +295,6 @@ const OpenLayersMap = forwardRef(function OpenLayersMap(
     layers[1].setVisible(basemap === 'esri')
     layers[2].setVisible(basemap === 'topo')
   }, [basemap])
-
-  useEffect(() => {
-    unifiedLayerRef.current?.changed()
-  }, [coeffBySource])
 
   useEffect(() => {
     const circleSource = circleSourceRef.current

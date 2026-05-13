@@ -34,13 +34,11 @@ function ScoreCard({ title, value, color }) {
   )
 }
 
-export default function AnalysisPanel({
-  analysis,
-  radiusKm,
-  onRadiusChange,
-  temporalMode,
-  onTemporalModeChange,
-}) {
+function monthLabels() {
+  return ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
+}
+
+export default function AnalysisPanel({ analysis, radiusKm, onRadiusChange }) {
   const comp = analysis?.composition || []
   const pieData = {
     labels: comp.map((c) => c.libelle),
@@ -52,16 +50,9 @@ export default function AnalysisPanel({
     ],
   }
 
-  const weekLabels = Array.from({ length: 53 }, (_, i) => `S${i + 1}`)
-  const lineLabels = temporalMode === 'week' ? weekLabels : monthLabels()
-  const nectarVals =
-    temporalMode === 'week'
-      ? analysis?.weeklyNectarArr || []
-      : analysis?.monthlyNectarArr || []
-  const pollenVals =
-    temporalMode === 'week'
-      ? analysis?.weeklyPollenArr || []
-      : analysis?.monthlyPollenArr || []
+  const lineLabels = monthLabels()
+  const nectarVals = analysis?.monthlyNectarArr || []
+  const pollenVals = analysis?.monthlyPollenArr || []
 
   const lineData = {
     labels: lineLabels,
@@ -136,18 +127,7 @@ export default function AnalysisPanel({
       </div>
 
       <div className="panel-section">
-        <div className="panel-section-head">
-          <h3>Profil temporel</h3>
-          <button
-            type="button"
-            className="btn-secondary small"
-            onClick={() =>
-              onTemporalModeChange(temporalMode === 'week' ? 'month' : 'week')
-            }
-          >
-            {temporalMode === 'week' ? 'Afficher par mois' : 'Afficher par semaine'}
-          </button>
-        </div>
+        <h3>Profil temporel (par mois)</h3>
         <div className="chart-wrap chart-wrap-tall">
           {analysis ? (
             <Line
@@ -178,8 +158,4 @@ export default function AnalysisPanel({
       </div>
     </aside>
   )
-}
-
-function monthLabels() {
-  return ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
 }

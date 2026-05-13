@@ -48,10 +48,9 @@ export function buildCircleFeature4326(center3857, radiusKm) {
 /**
  * @param {import('geojson').Feature[]} features3857
  * @param {import('geojson').Feature<import('geojson').Polygon>} circle4326
- * @param {Record<string, Record<string, object>>} coeffBySource
  * @param {Worker} worker
  */
-export function runWorkerAnalysis(features3857, circle4326, coeffBySource, worker) {
+export function runWorkerAnalysis(features3857, circle4326, worker) {
   // Turf in the worker expects geographic coordinates (EPSG:4326).
   const features4326 = features3857.map(fgbFeatureTo4326)
   return new Promise((resolve, reject) => {
@@ -76,7 +75,6 @@ export function runWorkerAnalysis(features3857, circle4326, coeffBySource, worke
       payload: {
         features: features4326,
         circleFeature: circle4326,
-        coeffBySource,
       },
     })
   })

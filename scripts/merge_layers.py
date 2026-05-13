@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """
 Merge RPG, BD Forêt, CLC with priority (RPG > Forêt > CLC), clip to pilot extent,
-simplify (~10 m in EPSG:3857), write FlatGeobuf unified_31_09.fgb.
+simplify (optional, metres in EPSG:3857), write FlatGeobuf unified_31_09.fgb.
 
 Expects GeoJSON from scripts/download_wfs.py in data/raw/.
+
+Coefficient tables under data/config/ are joined onto each polygon before export so
+the web client only reads feature attributes (no separate CSV fetch at runtime).
+Attributes written: libelle, couleur, coeff_mellifere, coeff_pollinifere, mois_production
+(semaines_production is ignored on purpose — monthly profile only in the app).
 """
 
 from __future__ import annotations
@@ -20,13 +25,15 @@ from shapely.ops import unary_union
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data" / "raw"
+CONFIG_DIR = ROOT / "data" / "config"
 OUT_DIR = ROOT / "data" / "unified"
 OUT_FGB = OUT_DIR / "unified_31_09.fgb"
 
 WEST, EAST, SOUTH, NORTH = 0.840, 3.230, 42.670, 43.760
 CRS_WGS84 = "EPSG:4326"
 CRS_WEBMERC = "EPSG:3857"
-SIMPLIFY_METERS = 0.0
+SIMPLIFY_METERS = 10.0
+DEFAULT_COLOUR = "#AAAAAA"
 
 
 def _nonempty_geom_mask(geom: gpd.GeoSeries) -> pd.Series:
@@ -99,6 +106,58 @@ def _repair_geom(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
             gdf.loc[invalid, "geometry"] = gdf.loc[invalid, "geometry"].make_valid()
     gdf["geometry"] = gdf.geometry.buffer(0)
     return gdf.loc[_nonempty_geom_mask(gdf.geometry)]
+
+
+def _load_coeff_table(name: str) -> pd.DataFrame:
+    path = CONFIG_DIR / name
+    if not path.exists():
+        raise FileNotFoundError(f"Missing coefficient CSV: {path}")
+    df = pd.read_csv(path, dtype=str, encoding="utf-8")
+    if "code" not in df.columns:
+        raise ValueError(f"{path} must contain a 'code' column")
+    df = df.copy()
+    df["code"] = df["code"].astype(str).str.strip()
+    return df.drop_duplicates(subset=["code"], keep="first").reset_index(drop=True)
+
+
+def _enrich_from_coeff_table(gdf: gpd.GeoDataFrame, table: pd.DataFrame, label: str) -> gpd.GeoDataFrame:
+    """Attach libelle, couleur, coefficients, mois_production from CSV rows keyed by code."""
+    if gdf.empty:
+        return gdf
+    gdf = gdf.copy()
+    idx = table.set_index("code", drop=False)
+    libs, cols, ms, ps, mois = [], [], [], [], []
+    for code in gdf["code"].astype(str):
+        if code in idx.index:
+            row = idx.loc[code]
+            if isinstance(row, pd.DataFrame):
+                row = row.iloc[0]
+            libs.append(str(row.get("libelle", code) or code))
+            c = row.get("couleur", "") or ""
+            cols.append(str(c).strip() if str(c).strip() else DEFAULT_COLOUR)
+            try:
+                ms.append(float(row.get("coeff_mellifere", 0) or 0))
+            except (TypeError, ValueError):
+                ms.append(0.0)
+            try:
+                ps.append(float(row.get("coeff_pollinifere", 0) or 0))
+            except (TypeError, ValueError):
+                ps.append(0.0)
+            m = row.get("mois_production", "")
+            mois.append("" if pd.isna(m) else str(m).strip())
+        else:
+            print(f"  warning: {label} unknown code '{code}' — using defaults", flush=True)
+            libs.append(code)
+            cols.append(DEFAULT_COLOUR)
+            ms.append(0.0)
+            ps.append(0.0)
+            mois.append("")
+    gdf["libelle"] = libs
+    gdf["couleur"] = cols
+    gdf["coeff_mellifere"] = ms
+    gdf["coeff_pollinifere"] = ps
+    gdf["mois_production"] = mois
+    return gdf
 
 
 def _prepare_rpg(gdf: gpd.GeoDataFrame, clip_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -185,20 +244,31 @@ def main() -> int:
     )
     args = ap.parse_args()
 
+    print("Loading coefficient CSVs from data/config/…", flush=True)
+    cultures = _load_coeff_table("cultures-config.csv")
+    forets = _load_coeff_table("forets-config.csv")
+    clc_tbl = _load_coeff_table("clc-config.csv")
+
     clip_gdf = _pilot_clip_polygon()
 
     print("Loading RPG…")
-    rpg = _fix_geom(_prepare_rpg(_read_raw("rpg_pilot"), clip_gdf))
+    rpg = _prepare_rpg(_read_raw("rpg_pilot"), clip_gdf)
+    rpg = _enrich_from_coeff_table(rpg, cultures, "RPG")
+    rpg = _fix_geom(rpg)
     if rpg.empty:
         print("RPG layer empty after clip — aborting.", file=sys.stderr)
         return 1
     print(f"  RPG prepared: {len(rpg)} features", flush=True)
 
     print("Loading BD Forêt…")
-    foret = _fix_geom(_prepare_foret(_read_raw("foret_pilot"), clip_gdf))
+    foret = _prepare_foret(_read_raw("foret_pilot"), clip_gdf)
+    foret = _enrich_from_coeff_table(foret, forets, "Forêt")
+    foret = _fix_geom(foret)
     print(f"  Forêt prepared: {len(foret)} features", flush=True)
     print("Loading CLC…")
-    clc = _fix_geom(_prepare_clc(_read_raw("clc_pilot"), clip_gdf))
+    clc = _prepare_clc(_read_raw("clc_pilot"), clip_gdf)
+    clc = _enrich_from_coeff_table(clc, clc_tbl, "CLC")
+    clc = _fix_geom(clc)
     print(f"  CLC prepared: {len(clc)} features", flush=True)
 
     if args.pre_simplify and args.pre_simplify > 0:

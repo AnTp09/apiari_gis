@@ -1,9 +1,14 @@
+/**
+ * Web Worker: intersect parcels with the analysis circle and aggregate scores.
+ * Coefficients and labels come from each feature's properties (denormalised in the FGB).
+ * Temporal profile uses months only (mois_production: "3;4;5").
+ */
 import area from '@turf/area'
 import { featureCollection } from '@turf/helpers'
 import intersect from '@turf/intersect'
 
 /**
- * @param {import('geojson').Feature} polyFeature - parcel (Polygon | MultiPolygon)
+ * @param {import('geojson').Feature} polyFeature
  * @param {import('geojson').Feature<import('geojson').Polygon>} circleFeature
  */
 function intersectionArea(polyFeature, circleFeature) {
@@ -16,23 +21,19 @@ function intersectionArea(polyFeature, circleFeature) {
   }
 }
 
-function parseWeeksMonths(row) {
-  const weeks = (row.semaines_production || '')
+function parseMonths(moisStr) {
+  if (moisStr == null || moisStr === '') return []
+  return String(moisStr)
     .split(';')
     .map((s) => parseInt(s.trim(), 10))
     .filter((n) => !Number.isNaN(n))
-  const months = (row.mois_production || '')
-    .split(';')
-    .map((s) => parseInt(s.trim(), 10))
-    .filter((n) => !Number.isNaN(n))
-  return { weeks, months }
 }
 
 self.onmessage = (e) => {
   const { type, payload } = e.data || {}
   if (type !== 'ANALYZE') return
 
-  const { features, circleFeature, coeffBySource } = payload
+  const { features, circleFeature } = payload
   const A_total = area(circleFeature)
   if (!A_total || A_total <= 0) {
     self.postMessage({ type: 'RESULT', payload: { error: 'Zone invalide' } })
@@ -41,14 +42,8 @@ self.onmessage = (e) => {
 
   let sumM = 0
   let sumP = 0
-  /** @type {Record<string, { libelle: string, area: number, coeff_mellifere: number, coeff_pollinifere: number }>} */
+  /** @type {Record<string, { libelle: string, area: number, coeff_mellifere: number, coeff_pollinifere: number, couleur: string, source: string, code: string }>} */
   const composition = {}
-  const weeklyNectar = Object.fromEntries(
-    Array.from({ length: 53 }, (_, i) => [i + 1, 0]),
-  )
-  const weeklyPollen = Object.fromEntries(
-    Array.from({ length: 53 }, (_, i) => [i + 1, 0]),
-  )
   const monthlyNectar = Object.fromEntries(
     Array.from({ length: 12 }, (_, i) => [i + 1, 0]),
   )
@@ -59,21 +54,19 @@ self.onmessage = (e) => {
   let typesCount = 0
   const seenTypes = new Set()
 
-  // The worker isolates heavy Turf intersections from the UI thread.
   for (const feat of features) {
     if (!feat.geometry) continue
     const props = feat.properties || {}
     const source = props.source
     const code = props.code != null ? String(props.code) : ''
-    const table = coeffBySource[source]
-    const row = table?.[code]
-    if (!row) continue
+    const m = Number(props.coeff_mellifere ?? 0)
+    const p = Number(props.coeff_pollinifere ?? 0)
+    const libelle = props.libelle != null ? String(props.libelle) : code
+    const couleur = props.couleur != null ? String(props.couleur) : '#888888'
 
     const Ai = intersectionArea(feat, circleFeature)
     if (Ai <= 0) continue
 
-    const m = row.coeff_mellifere
-    const p = row.coeff_pollinifere
     sumM += Ai * m
     sumP += Ai * p
 
@@ -83,27 +76,20 @@ self.onmessage = (e) => {
       typesCount += 1
     }
 
-    const lib = row.libelle || code
     if (!composition[key]) {
       composition[key] = {
-        libelle: lib,
+        libelle,
         area: 0,
         coeff_mellifere: m,
         coeff_pollinifere: p,
         source,
         code,
-        couleur: row.couleur || '#888888',
+        couleur,
       }
     }
     composition[key].area += Ai
 
-    const { weeks, months } = parseWeeksMonths(row)
-    for (const w of weeks) {
-      if (w >= 1 && w <= 53) {
-        weeklyNectar[w] += Ai * m
-        weeklyPollen[w] += Ai * p
-      }
-    }
+    const months = parseMonths(props.mois_production)
     for (const mo of months) {
       if (mo >= 1 && mo <= 12) {
         monthlyNectar[mo] += Ai * m
@@ -115,16 +101,6 @@ self.onmessage = (e) => {
   const scoreMellifere = sumM / A_total
   const scorePollinifere = sumP / A_total
 
-  const norm = (o) => {
-    const out = {}
-    for (const [k, v] of Object.entries(o)) {
-      out[k] = v / A_total
-    }
-    return out
-  }
-
-  const weeklyNectarArr = Array.from({ length: 53 }, (_, i) => weeklyNectar[i + 1] / A_total)
-  const weeklyPollenArr = Array.from({ length: 53 }, (_, i) => weeklyPollen[i + 1] / A_total)
   const monthlyNectarArr = Array.from({ length: 12 }, (_, i) => monthlyNectar[i + 1] / A_total)
   const monthlyPollenArr = Array.from({ length: 12 }, (_, i) => monthlyPollen[i + 1] / A_total)
 
@@ -134,12 +110,6 @@ self.onmessage = (e) => {
       scoreMellifere,
       scorePollinifere,
       composition: Object.values(composition),
-      weeklyNectar: norm(weeklyNectar),
-      weeklyPollen: norm(weeklyPollen),
-      monthlyNectar: norm(monthlyNectar),
-      monthlyPollen: norm(monthlyPollen),
-      weeklyNectarArr,
-      weeklyPollenArr,
       monthlyNectarArr,
       monthlyPollenArr,
       areaHa: A_total / 10000,
