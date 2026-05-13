@@ -10,9 +10,9 @@ This file tracks work against the technical specification in **`TechSpec`**. Upd
 | P1-2 | Data | `scripts/download_wfs.py`: BBOX pilot, pagination, retries | Done | BBOX order `south,west,north,east` for EPSG:4326 |
 | P1-3 | Data | `scripts/simplify_geometries.py` | Done | Optional standalone simplify |
 | P1-4 | Data | `scripts/merge_layers.py`: RPG → Forêt → CLC, EPSG:3857, `code` + `source` | Done | Run after download |
-| P1-5 | Data | `data/unified/unified_31_09.fgb` + `check_fgb_size.py` | Not started | Run pipeline locally; file large → gitignore or LFS |
-| P1-6 | Data | CSVs in `data/config/` + copies in `webapp/public/config/` | Done | Placeholder rows — extend with real coefficients |
-| P2-1 | Docs | `docs/methodology.md`, `update_instructions.md`, `api_notes.md` | Done | Draft stubs |
+| P1-5 | Data | `data/unified/unified_31_09.fgb` + `check_fgb_size.py` | Done | Generated and validated (~7.7 MB) |
+| P1-6 | Data | CSVs in `data/config/` + copies in `webapp/public/config/` | In progress | URLs wired; placeholders still to replace with final values |
+| P2-1 | Docs | `docs/methodology.md`, `update_instructions.md`, `api_notes.md` | In progress | Drafts exist; public-facing polish pending |
 | P3-1 | Webapp | Scaffold React + Vite; `flatgeobuf`, `ol`, Turf, Chart.js | Done | `webapp/` — run `npm install` |
 | P3-2 | Webapp | FGB bbox reads + zoom ≥ 11 gate | Done | `OpenLayersMap.jsx` vector loader |
 | P3-3 | Webapp | Map extent, bases OSM / Esri / OpenTopoMap, styles from CSV | Done | IGN topo deferred (clé souvent requise) |
@@ -22,18 +22,18 @@ This file tracks work against the technical specification in **`TechSpec`**. Upd
 | P3-7 | Webapp | Analysis panel: scores, doughnut, temporal line | Done | |
 | P3-8 | Webapp | Adresse.data.gouv search, geolocation, pilot banner | Done | |
 | P3-9 | Webapp | Loading line, `prefers-color-scheme` glass UI | Partial | Onboarding hint on map |
-| P4-1 | Deploy | GitHub Pages build | Not started | `npm run build`, `base: './'` set |
+| P4-1 | Deploy | GitHub Pages build | In progress | Workflow added; waiting for Pages activation + first successful run |
 | P4-2 | Deliverable | Guide utilisateur (FR) | Not started | |
 
 ## Milestone summary
 
 | Milestone | Criteria | Status |
 |-----------|----------|--------|
-| M1 — Data pipeline | Scripts run; `unified_31_09.fgb` produced | In progress |
-| M2 — Map + data | Map + FGB layer + legend | Done (needs real FGB URL) |
+| M1 — Data pipeline | Scripts run; `unified_31_09.fgb` produced | Done |
+| M2 — Map + data | Map + FGB layer + legend | Done |
 | M3 — Analysis | Worker + panel wired | Done |
-| M4 — Release | Deployed SPA, smoke-tested | Not started |
+| M4 — Release | Deployed SPA, smoke-tested | In progress |
 
 ## Last updated
 
-- 2026-04-03 — Initial implementation: Python scripts, webapp scaffold, docs, sample CSVs.
+- 2026-05-13 — Data pipeline validated with final FGB, deploy workflow + env URLs updated.

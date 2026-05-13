@@ -49,6 +49,7 @@ BACKOFF_SEC = (1, 2, 4)
 
 
 def wfs_getfeature_params(typenames: str, start_index: int) -> dict:
+    # Keep CRS explicit in requests to reduce provider-dependent defaults.
     return {
         "SERVICE": "WFS",
         "VERSION": "2.0.0",
@@ -65,6 +66,7 @@ def wfs_getfeature_params(typenames: str, start_index: int) -> dict:
 def fetch_page(session: requests.Session, params: dict) -> dict:
     url = f"{WFS_URL}?{urlencode(params)}"
     last_err: Exception | None = None
+    # Retry transient network / provider errors with exponential backoff.
     for attempt, wait in enumerate(BACKOFF_SEC):
         try:
             r = session.get(url, timeout=120)

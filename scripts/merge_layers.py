@@ -91,6 +91,7 @@ def _repair_geom(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     gdf = gdf.loc[_nonempty_geom_mask(gdf.geometry)].copy()
     if gdf.empty:
         return gdf
+    # Only repair invalid geometries to avoid unnecessary transformations.
     invalid = ~gdf.geometry.is_valid
     if invalid.any() and hasattr(gdf.geometry, "make_valid"):
         with warnings.catch_warnings():

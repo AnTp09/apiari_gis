@@ -87,6 +87,39 @@ To make that URL serve the app:
 3. Push any commit to `main` (or run the workflow manually in **Actions**).
 4. Wait until workflow **Deploy webapp to GitHub Pages** is green, then open the URL above.
 
+### If you get "There isn't a GitHub Pages site here" (404)
+
+This almost always means the app has **not been deployed yet** (or Pages is not set to GitHub Actions):
+
+1. Confirm these files are pushed to `main`:
+   - `.github/workflows/deploy-pages.yml`
+   - `webapp/.env.production`
+2. In GitHub: `Settings` → `Pages`:
+   - Build and deployment: **GitHub Actions**
+3. In GitHub: `Actions` tab:
+   - open workflow **Deploy webapp to GitHub Pages**
+   - if needed, click **Run workflow**
+4. Wait for both jobs (`build`, `deploy`) to be green.
+5. Refresh `https://antp09.github.io/apiari_gis/` (hard refresh: Ctrl+F5).
+
+If `build` fails:
+- check `webapp/package.json` is valid and pushed
+- check `.env.production` values and path to `data/unified/unified_31_09.fgb`
+- rerun workflow after pushing a fix
+
+## Local visualisation (without GitHub Pages)
+
+To view the web map locally:
+
+```bash
+cd webapp
+cp .env.example .env
+npm install
+npm run dev
+```
+
+Then open the URL shown in terminal (usually `http://localhost:5173/`).
+
 ## Status
 
 See **`IMPLEMENTATION_STATUS.md`** for task tracking.

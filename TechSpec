@@ -73,11 +73,11 @@ Three independent CSV files provide coefficients, production periods, and colour
 They are fetched at application startup from their raw GitHub URLs.
 
 RPG CSV:
-  https://raw.githubusercontent.com/AnTp09/data_gis/main/cultures-config.csv
+  https://raw.githubusercontent.com/AnTp09/apiari_gis/main/data/config/cultures-config.csv
 Foret CSV:
-  https://raw.githubusercontent.com/AnTp09/data_gis/main/forets-config.csv
+  https://raw.githubusercontent.com/AnTp09/apiari_gis/main/data/config/forets-config.csv
 CLC CSV:
-  https://raw.githubusercontent.com/AnTp09/data_gis/main/clc-config.csv
+  https://raw.githubusercontent.com/AnTp09/apiari_gis/main/data/config/clc-config.csv
 
 NOTE – Raw URLs: The URLs above use raw.githubusercontent.com to serve plain text
 directly. The /blob/ GitHub viewer URLs must not be used for programmatic fetching.
@@ -437,6 +437,12 @@ The IGN WFS endpoints enforce a maximum feature count per request (typically
   c. Retry failed requests up to 3 times with exponential backoff (1 s, 2 s, 4 s).
   d. Raw responses saved to data/raw/ per source before merging.
   e. Feature count logged per source for validation.
+  f. SRSNAME is explicitly set to EPSG:4326 in requests to reduce CRS ambiguity.
+
+IMPORTANT CRS robustness note:
+  In rare cases, a WFS layer may be returned with projected coordinates despite
+  EPSG:4326 tagging. The merge script includes a bounds-based CRS sanity check
+  and can auto-correct legacy files (e.g. Lambert-93 / EPSG:2154) before reprojection.
 
 7.4 Deployment (GitHub-Only)
 
