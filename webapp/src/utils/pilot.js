@@ -1,4 +1,5 @@
-import { containsCoordinate, transformExtent } from 'ol/extent'
+import { containsCoordinate } from 'ol/extent'
+import { transformExtent } from 'ol/proj'
 
 const PILOT_EXTENT_3857 = transformExtent(
   [0.84, 42.67, 3.23, 43.76],

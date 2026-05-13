@@ -78,14 +78,17 @@ For this repository (`AnTp09/apiari_gis`), the public app URL is:
 
 - `https://antp09.github.io/apiari_gis/`
 
+**Do not use the default “Deploy Jekyll” workflow** GitHub may suggest: it builds the **repository root** as a Jekyll site and you will only see **README.md** in the browser. This project uses **Vite** instead; the workflow **Deploy webapp to GitHub Pages** builds `webapp/` and uploads `webapp/dist`.
+
 To make that URL serve the app:
 
 1. Push `main` with:
    - `webapp/.env.production`
    - `.github/workflows/deploy-pages.yml`
-2. In GitHub repository settings, open **Pages** and select **Build and deployment: GitHub Actions**.
-3. Push any commit to `main` (or run the workflow manually in **Actions**).
-4. Wait until workflow **Deploy webapp to GitHub Pages** is green, then open the URL above.
+2. **Delete** any `jekyll-gh-pages.yml` (or similar Jekyll) workflow if it exists, so only the Vite deploy workflow runs.
+3. In GitHub repository settings, open **Pages** and select **Build and deployment: GitHub Actions**.
+4. Push any commit to `main` (or run the workflow manually in **Actions**).
+5. Wait until workflow **Deploy webapp to GitHub Pages** is green, then open the URL above.
 
 ### If you get "There isn't a GitHub Pages site here" (404)
 
