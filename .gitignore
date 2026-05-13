@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Node / Vite
+webapp/node_modules/
+webapp/dist/
+*.log
+npm-debug.log*
+
+# Raw WFS downloads (large)
+data/raw/*.geojson
+data/raw/*.json
+!data/raw/.gitkeep
+
+# Local env overrides
+webapp/.env
+webapp/.env.local
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

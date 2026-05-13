@@ -1,0 +1,27 @@
+{
+  "name": "apiari-gis-webapp",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@turf/area": "^7.2.0",
+    "@turf/circle": "^7.2.0",
+    "@turf/helpers": "^7.2.0",
+    "@turf/intersect": "^7.2.0",
+    "chart.js": "^4.4.8",
+    "flatgeobuf": "^4.0.1",
+    "ol": "^10.4.0",
+    "react": "^19.0.0",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.2.0"
+  }
+}

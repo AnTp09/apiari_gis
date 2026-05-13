@@ -1,0 +1,4 @@
+code,libelle,code_groupe,libelle_groupe,couleur,coeff_mellifere,coeff_pollinifere,semaines_production,mois_production,notes
+RAI,Colza,01,Céréales,#E6C200,9,6,14;15;16;17;18;19;20;21;22,3;4;5,exemple
+TOU,Tournesol,01,Céréales,#FFD700,7,4,26;27;28;29;30;31;32;33;34;35,6;7;8,exemple
+AAR,Autres cultures,99,Divers,#AAAAAA,2,2,20;21;22;23;24;25;26,5;6;7,placeholder
