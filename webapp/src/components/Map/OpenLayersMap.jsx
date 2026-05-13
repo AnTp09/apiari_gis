@@ -87,6 +87,7 @@ const OpenLayersMap = forwardRef(function OpenLayersMap(
   }, [])
 
   useImperativeHandle(ref, () => ({
+    // Public API for parent components (search bar / geolocation) to move the view.
     flyTo4326(lon, lat) {
       const map = mapRef.current
       if (!map) return
@@ -115,6 +116,7 @@ const OpenLayersMap = forwardRef(function OpenLayersMap(
     }
     onOutOfPilot?.(false)
 
+    // Query only features around the circle bbox; precise area intersection is done in worker.
     const radiusM = radiusKm * 1000
     const circle3857 = new CircleGeom(center3857, radiusM)
     let extent = circle3857.getExtent()
@@ -158,6 +160,7 @@ const OpenLayersMap = forwardRef(function OpenLayersMap(
         const url = import.meta.env.VITE_UNIFIED_FGB_URL
         unifiedSource.clear()
         if (!map || !url) return
+        // Keep low zoom lightweight by disabling polygon fetch until threshold.
         if (map.getView().getZoom() < MIN_ZOOM_VECTOR) return
         try {
           const format = new GeoJSON({

@@ -72,6 +72,21 @@ npm run dev
 
 Set `VITE_UNIFIED_FGB_URL` to the raw URL of `unified_31_09.fgb` and CSV URLs (or use local `/config/*.csv` in `public/config/` for offline dev).
 
+## GitHub Pages deployment
+
+For this repository (`AnTp09/apiari_gis`), the public app URL is:
+
+- `https://antp09.github.io/apiari_gis/`
+
+To make that URL serve the app:
+
+1. Push `main` with:
+   - `webapp/.env.production`
+   - `.github/workflows/deploy-pages.yml`
+2. In GitHub repository settings, open **Pages** and select **Build and deployment: GitHub Actions**.
+3. Push any commit to `main` (or run the workflow manually in **Actions**).
+4. Wait until workflow **Deploy webapp to GitHub Pages** is green, then open the URL above.
+
 ## Status
 
 See **`IMPLEMENTATION_STATUS.md`** for task tracking.

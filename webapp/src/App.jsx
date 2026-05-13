@@ -9,6 +9,7 @@ import { DEFAULT_RADIUS_KM } from './constants'
 import { csvUrlsFromEnv, loadCoefficientTables } from './utils/coefficients'
 
 export default function App() {
+  // Map ref exposes imperative helpers (currently flyTo4326 from OpenLayersMap).
   const mapRef = useRef(null)
   const [coeff, setCoeff] = useState(null)
   const [coeffErr, setCoeffErr] = useState(null)
@@ -21,6 +22,7 @@ export default function App() {
   const [temporalMode, setTemporalMode] = useState('week')
 
   useEffect(() => {
+    // Load reference coefficients once at startup; app cannot compute scores without them.
     loadCoefficientTables(csvUrlsFromEnv())
       .then((c) => {
         setCoeff(c)
@@ -73,6 +75,7 @@ export default function App() {
           type="button"
           className="btn-secondary"
           onClick={() => {
+            // Optional convenience: center map and analysis circle on browser geolocation.
             navigator.geolocation?.getCurrentPosition(
               (pos) => {
                 mapRef.current?.flyTo4326(pos.coords.longitude, pos.coords.latitude)

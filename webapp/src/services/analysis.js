@@ -52,6 +52,7 @@ export function buildCircleFeature4326(center3857, radiusKm) {
  * @param {Worker} worker
  */
 export function runWorkerAnalysis(features3857, circle4326, coeffBySource, worker) {
+  // Turf in the worker expects geographic coordinates (EPSG:4326).
   const features4326 = features3857.map(fgbFeatureTo4326)
   return new Promise((resolve, reject) => {
     const onMsg = (ev) => {

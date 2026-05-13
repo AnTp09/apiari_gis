@@ -59,6 +59,7 @@ self.onmessage = (e) => {
   let typesCount = 0
   const seenTypes = new Set()
 
+  // The worker isolates heavy Turf intersections from the UI thread.
   for (const feat of features) {
     if (!feat.geometry) continue
     const props = feat.properties || {}
